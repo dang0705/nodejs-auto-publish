@@ -79,18 +79,11 @@ const publish = async ({
   ]);
   console.log(scriptErr + "\n", bundleStatus);
 
-  execaSync("cp", [
-    "-rf",
-    `${dist}${appName ? `/${appName}` : ""}/*`,
-    `build/${release}`,
-  ]);
+  const distPath = `${dist}${appName ? `/${appName}` : ""}`;
+  execaSync("cp", ["-rf", `${distPath}/*`, `build/${release}`]);
 
   chdir(`build/${release}`);
-  if (debug) {
-    console.log(`git三连前的工作目录${cwd()}`);
-    spinner.succeed("调试完成");
-    return;
-  }
+  debug && console.log(`git三连前的工作目录${cwd()}`);
   spinner.text = "打包完成，准备git发布";
   const { stdout: commits } = await getCurrentSrcHash(currentSrcBranch);
 
@@ -103,6 +96,13 @@ const publish = async ({
 
   execaSync("git", ["add", "-A"]);
   execaSync("git", ["commit", "-m", COMMITS]);
+
+  if (debug) {
+    spinner.succeed(
+      `调试完成，调试模式下不会推送代码，请自行查看本地${release}分支的提交记录进行验证。`
+    );
+    return;
+  }
   const { stdout: publishStatus } = execaSync(
     "git",
     ["push", "-u", "--set-upstream", "origin", release],
