@@ -113,8 +113,7 @@ const publish = async ({
   }
   const { stdout: publishStatus } = execaSync("git", [
     "push",
-    "-u",
-    "--set-upstream",
+    "-f",
     "origin",
     release,
   ]);
