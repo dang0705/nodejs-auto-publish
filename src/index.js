@@ -21,6 +21,20 @@ const publish = async ({
   dist,
   shortCommitHash,
 }) => {
+  const cleanWorkTree = () => {
+    try {
+      execaSync("git", ["worktree", "remove", "-f", "-f", release]);
+      execaSync("git", ["worktree", "prune"]);
+    } catch (e) {}
+  };
+  const getCurrentSrcHash = (currentSourceBranch) =>
+    execa("git", [
+      "rev-parse",
+      ...(shortCommitHash ? ["--short"] : []),
+      currentSourceBranch,
+    ]);
+  const { stdout: currentSrcBranch } = await getCurrentBranch();
+
   process
     .on("uncaughtException", (err) => {
       spinner.fail(
@@ -31,20 +45,9 @@ const publish = async ({
     })
     .on("SIGINT", process.exit)
     .on("exit", () => {
-      try {
-        execaSync("git", ["worktree", "remove", "-f", "-f", release]);
-        execaSync("git", ["worktree", "prune"]);
-      } catch (e) {}
+      cleanWorkTree();
       execaSync("exit", [1]);
     });
-  const getCurrentSrcHash = (currentSourceBranch) =>
-    execa("git", [
-      "rev-parse",
-      ...(shortCommitHash ? ["--short"] : []),
-      currentSourceBranch,
-    ]);
-
-  const { stdout: currentSrcBranch } = await getCurrentBranch();
 
   if (master && master !== currentSrcBranch) {
     console.log(`请切换到 ${master} 分支后再进行打包。`);
@@ -59,6 +62,7 @@ const publish = async ({
   } catch (e) {
     execaSync("mkdir", ["build"]);
   } finally {
+    cleanWorkTree();
     const { stdout } = await execa("git", [
       "worktree",
       "add",
@@ -107,11 +111,13 @@ const publish = async ({
     );
     return;
   }
-  const { stdout: publishStatus } = execaSync(
-    "git",
-    ["push", "-u", "--set-upstream", "origin", release],
-    { shell: true }
-  );
+  const { stdout: publishStatus } = execaSync("git", [
+    "push",
+    "-u",
+    "--set-upstream",
+    "origin",
+    release,
+  ]);
   console.log(publishStatus);
   spinner.succeed(
     `代码推送成功，本次推送的git提交信息为：${COMMITS}，打包分支为${release}`
