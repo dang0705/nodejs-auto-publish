@@ -99,7 +99,11 @@ const publish = async ({
 
   if (debug) {
     spinner.succeed(
-      `调试完成，调试模式下不会推送代码，请自行查看本地${release}分支的提交记录进行验证。`
+      `调试完成，${
+        customCommit
+          ? `因开启了customCommit，本次自定义提交信息为${COMMITS}`
+          : ""
+      }调试模式下推送代码，请查看本地${release}分支的记录进行验证。`
     );
     return;
   }
