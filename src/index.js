@@ -19,7 +19,7 @@ const publish = async ({
   customCommit,
   debug,
   dist,
-  shortCommit,
+  shortCommitHash,
 }) => {
   process
     .on("uncaughtException", (err) => {
@@ -40,7 +40,7 @@ const publish = async ({
   const getCurrentSrcHash = (currentSourceBranch) =>
     execa("git", [
       "rev-parse",
-      ...(shortCommit ? ["--short"] : []),
+      ...(shortCommitHash ? ["--short"] : []),
       currentSourceBranch,
     ]);
 
@@ -95,7 +95,7 @@ const publish = async ({
   const { stdout: commits } = await getCurrentSrcHash(currentSrcBranch);
 
   if (customCommit) {
-    var customCommitText = customCommit({ release });
+    var customCommitText = customCommit({ release, currentSrcBranch });
   }
   const COMMITS = `built by ${
     customCommitText || `[ srcBranch:${currentSrcBranch} ]`
@@ -121,7 +121,7 @@ export default function ({
   debug = false,
   npmScript,
   customCommit = null,
-  shortCommit = true,
+  shortCommitHash = true,
 }) {
   if (typeof release === "string") {
     publish({
@@ -129,9 +129,9 @@ export default function ({
       master,
       npmScript,
       customCommit,
+      shortCommitHash,
       debug,
       dist,
-      shortCommit,
     });
     return;
   }
@@ -156,7 +156,7 @@ export default function ({
       customCommit,
       debug,
       dist,
-      shortCommit,
+      shortCommitHash,
     });
     r1.close();
   });
