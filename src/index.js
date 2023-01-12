@@ -10,17 +10,16 @@ let spinner = ora("");
 
 const getCurrentBranch = () =>
   execa("git", ["symbolic-ref", "--short", "-q", "HEAD"]);
-const getCurrentSrcHash = (currentSourceBranch) =>
-  execa("git", ["rev-parse", "--short", currentSourceBranch]);
 
 const publish = async ({
   appName,
   release,
   master,
   npmScript,
-  customScript,
+  customCommit,
   debug,
   dist,
+  shortCommit,
 }) => {
   process
     .on("uncaughtException", (err) => {
@@ -38,6 +37,12 @@ const publish = async ({
       } catch (e) {}
       execaSync("exit", [1]);
     });
+  const getCurrentSrcHash = (currentSourceBranch) =>
+    execa("git", [
+      "rev-parse",
+      ...(shortCommit ? ["--short"] : []),
+      currentSourceBranch,
+    ]);
 
   const { stdout: currentSrcBranch } = await getCurrentBranch();
 
@@ -68,15 +73,11 @@ const publish = async ({
     chdir(__dirName);
   }
   spinner.text = `正在运行打包脚本... npm run ${npmScript}`;
-  if (customScript) {
-    await customScript();
-  } else {
-    const { stdout: bundleStatus, stderr: scriptErr } = await execa("npm", [
-      "run",
-      npmScript,
-    ]);
-    console.log(scriptErr + "\n", bundleStatus);
-  }
+  const { stdout: bundleStatus, stderr: scriptErr } = await execa("npm", [
+    "run",
+    npmScript,
+  ]);
+  console.log(scriptErr + "\n", bundleStatus);
 
   execaSync("cp", [
     "-rf",
@@ -93,7 +94,12 @@ const publish = async ({
   spinner.text = "打包完成，准备git发布";
   const { stdout: commits } = await getCurrentSrcHash(currentSrcBranch);
 
-  const COMMITS = `built by branch-${currentSrcBranch}-git-commit-hash ${commits}`;
+  if (customCommit) {
+    var customCommitText = customCommit({ release });
+  }
+  const COMMITS = `built by ${
+    customCommitText || `[ srcBranch:${currentSrcBranch} ]`
+  } [ commit-hash:${commits} ]`;
 
   execaSync("git", ["add", "-A"]);
   execaSync("git", ["commit", "-m", COMMITS]);
@@ -114,10 +120,19 @@ export default function ({
   master = "master",
   debug = false,
   npmScript,
-  customScript = null,
+  customCommit = null,
+  shortCommit = true,
 }) {
   if (typeof release === "string") {
-    publish({ release, master, npmScript, customScript, debug, dist });
+    publish({
+      release,
+      master,
+      npmScript,
+      customCommit,
+      debug,
+      dist,
+      shortCommit,
+    });
     return;
   }
   const branches = [];
@@ -138,9 +153,10 @@ export default function ({
       release: release[answer].branch,
       master,
       npmScript: release[answer].npmScript,
-      customScript,
+      customCommit,
       debug,
       dist,
+      shortCommit,
     });
     r1.close();
   });
