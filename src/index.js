@@ -153,7 +153,7 @@ export default function ({
   r1.question("请选择一个构建分支（序号）：\n", async (answer) => {
     console.log("您选择了：", release[answer].branch + "分支");
     await publish({
-      appName: release[answer].appName,
+      appName: release[answer].appName || "",
       release: release[answer].branch,
       master,
       npmScript: release[answer].npmScript,
