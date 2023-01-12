@@ -47,7 +47,7 @@ const publish = async ({
   const { stdout: currentSrcBranch } = await getCurrentBranch();
 
   if (master && master !== currentSrcBranch) {
-    execaSync("echo", [`请切换到 ${master} 分支后再进行打包。`]);
+    console.log(`请切换到 ${master} 分支后再进行打包。`);
     execaSync("exit", [1]);
     return;
   }
@@ -90,9 +90,9 @@ const publish = async ({
   if (customCommit) {
     var customCommitText = customCommit({ release, currentSrcBranch });
   }
-  const COMMITS = `built by ${
-    `[ ${customCommitText} ]` || `[ srcBranch:${currentSrcBranch} ]`
-  } [ commit-hash:${commits} ]`;
+  const COMMITS = `built by ${`[ ${
+    customCommitText || `srcBranch:${currentSrcBranch}`
+  } ]`} [ commit-hash:${commits} ]`;
 
   execaSync("git", ["add", "-A"]);
   execaSync("git", ["commit", "-m", COMMITS]);
@@ -151,7 +151,7 @@ export default function ({
   console.log("所有的构建分支：\n" + branches.join("\n"));
 
   r1.question("请选择一个构建分支（序号）：\n", async (answer) => {
-    console.log("您选择了：", release[answer].branch + "分支");
+    console.log("您选择了：", release[answer].branch + "分支\n");
     await publish({
       appName: release[answer].appName || "",
       release: release[answer].branch,
