@@ -17,7 +17,7 @@
   ],
   "author": "JAY",
   "license": "ISC",
-  "dependencies": {
+  "devDependencies": {
     "@rollup/plugin-commonjs": "^24.0.0",
     "execa": "^6.1.0",
     "ora": "^6.1.2",
