@@ -136,6 +136,11 @@ export default function ({
   customCommit = null,
   shortCommitHash = true,
 }) {
+  console.log(
+    `当前运行模式为：${
+      debug ? "【 调试 】" : "【 打包 】"
+    },如需改成调试模式，请将debug参数设置为true`
+  );
   if (typeof branch === "string") {
     publish({
       branch,
@@ -157,7 +162,9 @@ export default function ({
     input: process.stdin,
     output: process.stdout,
   });
-  console.log("所有的构建分支：\n" + branches.join("\n"));
+  console.log(
+    "所有的构建分支(all packaging branches)：\n" + branches.join("\n")
+  );
 
   r1.question("请选择一个构建分支（序号）：\n", async (answer) => {
     console.log("您选择了：", branch[answer].name + "分支\n");

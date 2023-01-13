@@ -12,4 +12,5 @@ autoPublish({
       npmScript,
     },
   },
+  // debug: true,
 });
