@@ -11,7 +11,7 @@
   ],
   "scripts": {
     "rollup:build": "rollup -c",
-    "publish": "node ./example/publish.js"
+    "publish-test": "node ./example/publish.js"
   },
   "keywords": [
     "auto deploy",
