@@ -4,6 +4,10 @@
   "description": "nodejs auto publish code",
   "type": "module",
   "main": "dist/index.mjs",
+  "repository": {
+    "url": "https://github.com/dang0705/nodejs-auto-publish.git",
+    "type": "git"
+  },
   "files": [
     "dist",
     "src",
