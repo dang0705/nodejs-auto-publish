@@ -137,9 +137,12 @@ export default function ({
   shortCommitHash = true,
 }) {
   console.log(
+    "\x1b[43m%s\x1b[0m",
     `当前运行模式为：${
-      debug ? "【 调试 】" : "【 打包 】"
-    },如需改成调试模式，请将debug参数设置为true`
+      debug ? "【 调试（打包后不推送) 】" : "【 完全（打包后推送） 】"
+    },如需改成${
+      debug ? "完全" : "调试（打包后不推送）"
+    }模式，请将debug参数设置为${debug ? "false" : "true"}\n`
   );
   if (typeof branch === "string") {
     publish({
