@@ -1,11 +1,13 @@
 {
   "name": "nodejs-auto-publish",
-  "version": "1.0.18",
+  "version": "1.0.19",
   "description": "nodejs auto publish code",
   "type": "module",
   "main": "dist/index.mjs",
   "files": [
-    "dist","src","example"
+    "dist",
+    "src",
+    "example"
   ],
   "scripts": {
     "rollup:build": "rollup -c",
