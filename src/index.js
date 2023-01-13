@@ -12,7 +12,7 @@ const getCurrentBranch = () =>
   execa("git", ["symbolic-ref", "--short", "-q", "HEAD"]);
 
 const publish = async ({
-  release,
+  branch,
   master,
   npmScript,
   customCommit,
@@ -23,7 +23,7 @@ const publish = async ({
   const cleanWorkTree = ({ removeBuildDir = false } = {}) => {
     try {
       chdir(__dirName);
-      execaSync("git", ["worktree", "remove", "-f", "-f", release]);
+      execaSync("git", ["worktree", "remove", "-f", "-f", branch]);
       execaSync("git", ["worktree", "prune"]);
       if (removeBuildDir) {
         execaSync("rm", ["-rf", "build"]);
@@ -72,12 +72,12 @@ const publish = async ({
       "worktree",
       "add",
       "-B",
-      release,
-      `build/${release}`,
-      `origin/${release}`,
+      branch,
+      `build/${branch}`,
+      `origin/${branch}`,
     ]);
     console.log(stdout);
-    chdir(`build/${release}`);
+    chdir(`build/${branch}`);
     execaSync("rm", ["-rf", "*"]);
     chdir(__dirName);
   }
@@ -88,15 +88,15 @@ const publish = async ({
   ]);
   console.log(scriptErr + "\n", bundleStatus);
 
-  execaSync("cp", ["-rf", `${dist}/*`, `build/${release}`]);
+  execaSync("cp", ["-rf", `${dist}/*`, `build/${branch}`]);
 
-  chdir(`build/${release}`);
+  chdir(`build/${branch}`);
   debug && console.log(`git操作前的工作目录${cwd()}`);
   spinner.text = "打包完成，准备git发布";
   const { stdout: commits } = await getCurrentSrcHash(currentSrcBranch);
 
   if (customCommit) {
-    var customCommitText = customCommit({ release, currentSrcBranch });
+    var customCommitText = customCommit({ branch, currentSrcBranch });
   }
   const COMMITS = `built by ${`[ ${
     customCommitText || `srcBranch:${currentSrcBranch}`
@@ -111,7 +111,7 @@ const publish = async ({
         customCommit
           ? `因开启了customCommit，本次自定义提交信息为${COMMITS}`
           : ""
-      }调试模式下不会推送代码，请查看本地${release}分支的记录进行验证。`
+      }调试模式下不会推送代码，请查看本地${branch}分支的记录进行验证。`
     );
     return;
   }
@@ -119,16 +119,16 @@ const publish = async ({
     "push",
     "-f",
     "origin",
-    release,
+    branch,
   ]);
   console.log(publishStatus);
   spinner.succeed(
-    `代码推送成功，本次推送的git提交信息为：${COMMITS}，打包分支为${release}`
+    `代码推送成功，本次推送的git提交信息为：${COMMITS}，打包分支为${branch}`
   );
 };
 
 export default function ({
-  release = "release",
+  branch = "release",
   dist = "dist",
   master = "master",
   debug = false,
@@ -136,9 +136,9 @@ export default function ({
   customCommit = null,
   shortCommitHash = true,
 }) {
-  if (typeof release === "string") {
+  if (typeof branch === "string") {
     publish({
-      release,
+      branch,
       master,
       npmScript,
       customCommit,
@@ -149,8 +149,8 @@ export default function ({
     return;
   }
   const branches = [];
-  for (const index in release) {
-    branches.push(`${index}.${release[index].branch}`);
+  for (const index in branch) {
+    branches.push(`${index}.${branch[index].name}`);
   }
 
   let r1 = readline.createInterface({
@@ -160,11 +160,11 @@ export default function ({
   console.log("所有的构建分支：\n" + branches.join("\n"));
 
   r1.question("请选择一个构建分支（序号）：\n", async (answer) => {
-    console.log("您选择了：", release[answer].branch + "分支\n");
+    console.log("您选择了：", branch[answer].name + "分支\n");
     await publish({
-      release: release[answer].branch,
-      dist: release[answer].dist || "dist",
-      npmScript: release[answer].npmScript,
+      branch: branch[answer].name,
+      dist: branch[answer].dist || "dist",
+      npmScript: branch[answer].npmScript,
       master,
       customCommit,
       debug,

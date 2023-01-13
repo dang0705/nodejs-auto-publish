@@ -5,11 +5,11 @@
   "type": "module",
   "main": "dist/index.mjs",
   "files": [
-    "dist","src"
+    "dist","src","example"
   ],
   "scripts": {
     "rollup:build": "rollup -c",
-    "publish": "node src/index.js"
+    "publish": "node ./example/publish.js"
   },
   "keywords": [
     "auto deploy",
