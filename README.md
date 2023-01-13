@@ -11,6 +11,7 @@ import autoPublish from 'nodejs-auto-publish';
 // 单个打包分支
 autoPublish({
   release: 'release',
+  dist:'myDistPath',
   npmScript: 'app:prod'
 });
 
@@ -19,12 +20,12 @@ autoPublish({
   release: {
     1: {
       branch: 'release-1',
-      appName: 'app1',
+      dist: 'myDistPath/app1',
       npmScript: 'app1:prod'
     },
     2: {
       branch: 'release-2',
-      appName: 'app2',
+      dist: 'myDistPath/app2',
       npmScript: 'app2:prod'
     }
   }

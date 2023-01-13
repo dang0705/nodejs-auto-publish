@@ -5,15 +5,17 @@
   "type": "module",
   "main": "dist/index.mjs",
   "files": [
-    "dist"
+    "dist","src"
   ],
   "scripts": {
-    "rollup:build": "rollup -c"
+    "rollup:build": "rollup -c",
+    "publish": "node src/index.js"
   },
   "keywords": [
-    "auto",
-    "publish",
-    "nodejs"
+    "auto deploy",
+    "auto publish",
+    "nodejs",
+    "git worktree"
   ],
   "author": "JAY",
   "license": "ISC",

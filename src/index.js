@@ -12,7 +12,6 @@ const getCurrentBranch = () =>
   execa("git", ["symbolic-ref", "--short", "-q", "HEAD"]);
 
 const publish = async ({
-  appName,
   release,
   master,
   npmScript,
@@ -21,10 +20,15 @@ const publish = async ({
   dist,
   shortCommitHash,
 }) => {
-  const cleanWorkTree = () => {
+  const cleanWorkTree = ({ removeBuildDir = false } = {}) => {
     try {
+      chdir(__dirName);
       execaSync("git", ["worktree", "remove", "-f", "-f", release]);
       execaSync("git", ["worktree", "prune"]);
+      if (removeBuildDir) {
+        execaSync("rm", ["-rf", "build"]);
+        debug && console.log("build临时目录已删除\n");
+      }
     } catch (e) {}
   };
   const getCurrentSrcHash = (currentSourceBranch) =>
@@ -36,6 +40,7 @@ const publish = async ({
   const { stdout: currentSrcBranch } = await getCurrentBranch();
 
   process
+    .on("SIGINT", process.exit)
     .on("uncaughtException", (err) => {
       spinner.fail(
         `${debug ? "调试" : "打包或部署"}意外退出，遇到以下问题：\n`
@@ -43,9 +48,8 @@ const publish = async ({
       console.log(err);
       process.exit();
     })
-    .on("SIGINT", process.exit)
     .on("exit", () => {
-      cleanWorkTree();
+      cleanWorkTree({ removeBuildDir: true });
       execaSync("exit", [1]);
     });
 
@@ -61,6 +65,7 @@ const publish = async ({
     await stat(path.join(__dirName, "build"));
   } catch (e) {
     execaSync("mkdir", ["build"]);
+    debug && (spinner.text = `已在${cwd()}下建立临时目录build\n`);
   } finally {
     cleanWorkTree();
     const { stdout } = await execa("git", [
@@ -83,11 +88,10 @@ const publish = async ({
   ]);
   console.log(scriptErr + "\n", bundleStatus);
 
-  const distPath = `${dist}${appName ? `/${appName}` : ""}`;
-  execaSync("cp", ["-rf", `${distPath}/*`, `build/${release}`]);
+  execaSync("cp", ["-rf", `${dist}/*`, `build/${release}`]);
 
   chdir(`build/${release}`);
-  debug && console.log(`git三连前的工作目录${cwd()}`);
+  debug && console.log(`git操作前的工作目录${cwd()}`);
   spinner.text = "打包完成，准备git发布";
   const { stdout: commits } = await getCurrentSrcHash(currentSrcBranch);
 
@@ -158,13 +162,12 @@ export default function ({
   r1.question("请选择一个构建分支（序号）：\n", async (answer) => {
     console.log("您选择了：", release[answer].branch + "分支\n");
     await publish({
-      appName: release[answer].appName || "",
       release: release[answer].branch,
-      master,
+      dist: release[answer].dist || "dist",
       npmScript: release[answer].npmScript,
+      master,
       customCommit,
       debug,
-      dist,
       shortCommitHash,
     });
     r1.close();
