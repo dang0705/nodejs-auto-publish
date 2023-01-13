@@ -20,7 +20,10 @@
   "keywords": [
     "auto deploy",
     "auto publish",
+    "deploy",
+    "publish",
     "nodejs",
+    "git",
     "git worktree"
   ],
   "author": "JAY",

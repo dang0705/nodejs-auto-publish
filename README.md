@@ -6,6 +6,7 @@
 ### 打包输出的目录默认为根目录下的dist
 ### 使用：
 ```
+// ./scripts/publish.mjs
 import autoPublish from 'nodejs-auto-publish';
 
 // 只有一个打包分支 only one packaging branch
@@ -30,6 +31,9 @@ autoPublish({
     }
   }
 });
+
+// run node ./scripts/publish.mjs in terminal 
+// 终端运行 node ./scripts/publish.mjs
 ```
 
 | prop         | type            | desc                                                                          | default                          |
