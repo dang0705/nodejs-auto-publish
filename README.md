@@ -1,6 +1,6 @@
 ## 基于nodejs的前端代码自动打包，git三连操作。
 ### git分支至少需满足以下结构，分支名可自定义<!-- TOC -->
-* master  -- 主分支
+* master  -- 源码主分支
 * release -- 打包分支（不包含源码文件，只有打包后的文件）
 <!-- TOC -->
 ### 打包输出的目录默认为根目录下的dist
@@ -13,16 +13,18 @@ import autoPublish from 'nodejs-auto-publish';
 autoPublish({
   branch: 'release',
   dist:'myDistPath',
-  npmScript: 'app:prod'
+  npmScript: 'app:prod',
+  master:'master'  // The source code branch that must be switched for the current package
 });
 
-// 有多个打包分支 multiple packaging branch
+// 有多个打包分支 monorepo or multiple packaging branch
 autoPublish({
   branch: {
     1: {
       name: 'release-branch-1',
       dist: 'myDistPath/app1',
-      npmScript: 'app1:prod'
+      npmScript: 'app1:prod',
+      master:'master'
     },
     2: {
       name: 'release-branch-2',

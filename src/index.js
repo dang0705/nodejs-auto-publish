@@ -8,9 +8,17 @@ import ora from "ora";
 const __dirName = path.resolve();
 let spinner = ora("");
 
-const getCurrentBranch = () =>
-  execa("git", ["symbolic-ref", "--short", "-q", "HEAD"]);
+const { stdout: currentSrcBranch } = await execa("git", [
+  "symbolic-ref",
+  "--short",
+  "-q",
+  "HEAD",
+]);
 
+const handleInvalidCurrentBranch = (currentBranch) => {
+  console.log(`Please checkout ${currentBranch} for release build.`);
+  execaSync("exit", [1]);
+};
 const publish = async ({
   branch,
   master,
@@ -37,7 +45,6 @@ const publish = async ({
       ...(shortCommitHash ? ["--short"] : []),
       currentSourceBranch,
     ]);
-  const { stdout: currentSrcBranch } = await getCurrentBranch();
 
   process
     .on("SIGINT", process.exit)
@@ -54,8 +61,7 @@ const publish = async ({
     });
 
   if (master && master !== currentSrcBranch) {
-    console.log(`请切换到 ${master} 分支后再进行打包。`);
-    execaSync("exit", [1]);
+    handleInvalidCurrentBranch(master);
     return;
   }
   spinner.text = `开始${debug ? "调试" : "打包部署"}...`;
@@ -141,7 +147,7 @@ export default function ({
     `当前运行模式为：${
       debug ? "【 调试（打包后不推送) 】" : "【 完全（打包后推送） 】"
     },如需改成${
-      debug ? "完全" : "调试（打包后不推送）"
+      debug ? "完整" : "调试（打包后不推送）"
     }模式，请将debug参数设置为${debug ? "false" : "true"}\n`
   );
   if (typeof branch === "string") {
@@ -170,12 +176,17 @@ export default function ({
   );
 
   r1.question("请选择一个构建分支（序号）：\n", async (answer) => {
+    if (branch[answer].master && branch[answer].master !== currentSrcBranch) {
+      handleInvalidCurrentBranch(branch[answer].master);
+      r1.close();
+      return;
+    }
     console.log("您选择了：", branch[answer].name + "分支\n");
     await publish({
       branch: branch[answer].name,
       dist: branch[answer].dist || "dist",
       npmScript: branch[answer].npmScript,
-      master,
+      // master,
       customCommit,
       debug,
       shortCommitHash,
