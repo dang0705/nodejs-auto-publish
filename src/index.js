@@ -186,7 +186,6 @@ export default function ({
       branch: branch[answer].name,
       dist: branch[answer].dist || "dist",
       npmScript: branch[answer].npmScript,
-      // master,
       customCommit,
       debug,
       shortCommitHash,
