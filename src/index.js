@@ -106,7 +106,7 @@ const publish = async ({
   }
   const COMMITS = `built by ${`[ ${
     customCommitText || `srcBranch:${currentSrcBranch}`
-  } ]`} [ commit-hash:${commits} ]`;
+  } ]`} [ latest-src-commit:${commits} ]`;
 
   execaSync("git", ["add", "-A"]);
   execaSync("git", ["commit", "-m", COMMITS]);
