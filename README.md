@@ -1,9 +1,10 @@
 ## 基于nodejs的前端代码自动打包，git三连操作。
-### git分支至少需满足以下结构，分支名可自定义<!-- TOC -->
-* master  -- 源码主分支
+### 工作原理：
+#### 运用git worktree 新建/关联 指定的打包分支，由于是worktree 的git 流操作, 不会影响当前主分支的工作区。(Use git worktree to create a new package branch specified by the association. Since it is the git flow operation of worktree, it will not affect the work area of the current main branch)
+### git分支至少需满足以下结构，分支名可自定义 (The git branch must at least meet the following structure, and the branch name can be customized)<!-- TOC -->
+* master  -- 主分支
 * release -- 打包分支（不包含源码文件，只有打包后的文件）
 <!-- TOC -->
-### 打包输出的目录默认为根目录下的dist
 ### 使用：
 ```
 // ./scripts/publish.mjs
