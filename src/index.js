@@ -15,8 +15,10 @@ const { stdout: currentSrcBranch } = await execa("git", [
   "HEAD",
 ]);
 
-const handleInvalidCurrentBranch = (currentBranch) => {
-  console.log(`Please checkout ${currentBranch} for release build.`);
+const handleInvalidBundleBranch = (bundleBranch) => {
+  console.log(
+    `请切换到${bundleBranch}分支进行打包。\nPlease checkout ${bundleBranch} for release build.`
+  );
   execaSync("exit", [1]);
 };
 const publish = async ({
@@ -60,10 +62,6 @@ const publish = async ({
       execaSync("exit", [1]);
     });
 
-  if (master && master !== currentSrcBranch) {
-    handleInvalidCurrentBranch(master);
-    return;
-  }
   spinner.text = `开始${debug ? "调试" : "打包部署"}...`;
   spinner.start();
 
@@ -151,9 +149,12 @@ export default function ({
     }模式，请将debug参数设置为${debug ? "false" : "true"}\n`
   );
   if (typeof branch === "string") {
+    if (master && master !== currentSrcBranch) {
+      handleInvalidBundleBranch(master);
+      return;
+    }
     publish({
       branch,
-      master,
       npmScript,
       customCommit,
       shortCommitHash,
@@ -177,7 +178,7 @@ export default function ({
 
   r1.question("请选择一个构建分支（序号）：\n", async (answer) => {
     if (branch[answer].master && branch[answer].master !== currentSrcBranch) {
-      handleInvalidCurrentBranch(branch[answer].master);
+      handleInvalidBundleBranch(branch[answer].master);
       r1.close();
       return;
     }
