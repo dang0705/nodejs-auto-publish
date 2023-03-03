@@ -29,7 +29,7 @@
   "author": "JAY",
   "license": "ISC",
   "dependencies": {
-    "execa": "^6.1.0",
+    "execa": "^7",
     "ora": "^6.1.2"
   },
   "devDependencies": {

@@ -1,4 +1,4 @@
-import { execaSync, execa } from "execa";
+import { execa } from "execa";
 import { chdir, cwd } from "node:process";
 import readline from "node:readline";
 import { stat } from "node:fs/promises";
@@ -19,7 +19,7 @@ const handleInvalidBundleBranch = (bundleBranch) => {
   console.log(
     `请切换到${bundleBranch}分支进行打包。\nPlease checkout ${bundleBranch} for release build.`
   );
-  execaSync("exit", [1]);
+  execa("exit", [1]);
 };
 const publish = async ({
   branch,
@@ -30,13 +30,13 @@ const publish = async ({
   dist,
   shortCommitHash,
 }) => {
-  const cleanWorkTree = ({ removeBuildDir = false } = {}) => {
+  const cleanWorkTree = async ({ removeBuildDir = false } = {}) => {
     try {
       chdir(__dirName);
-      execaSync("git", ["worktree", "remove", "-f", "-f", branch]);
-      execaSync("git", ["worktree", "prune"]);
+      execa("git", ["worktree", "remove", "-f", "-f", branch]);
+      execa("git", ["worktree", "prune"]);
       if (removeBuildDir) {
-        execaSync("rm", ["-rf", "build"]);
+        execa("rm", ["-rf", "build"]);
         debug && console.log("build临时目录已删除\n");
       }
     } catch (e) {}
@@ -59,7 +59,7 @@ const publish = async ({
     })
     .on("exit", () => {
       cleanWorkTree({ removeBuildDir: true });
-      execaSync("exit", [1]);
+      execa("exit", [1]);
     });
 
   spinner.text = `开始${debug ? "调试" : "打包部署"}...`;
@@ -68,7 +68,7 @@ const publish = async ({
   try {
     await stat(path.join(__dirName, "build"));
   } catch (e) {
-    execaSync("mkdir", ["build"]);
+    execa("mkdir", ["build"]);
     debug && (spinner.text = `已在${cwd()}下建立临时目录build\n`);
   } finally {
     cleanWorkTree();
@@ -82,7 +82,7 @@ const publish = async ({
     ]);
     console.log(stdout);
     chdir(`build/${branch}`);
-    execaSync("rm", ["-rf", "*"]);
+    execa("rm", ["-rf", "*"]);
     chdir(__dirName);
   }
   spinner.text = `正在运行打包脚本... npm run ${npmScript}`;
@@ -92,7 +92,7 @@ const publish = async ({
   ]);
   console.log(scriptErr + "\n", bundleStatus);
 
-  execaSync("cp", ["-rf", `${dist}/*`, `build/${branch}`]);
+  execa("cp", ["-rf", `${dist}/*`, `build/${branch}`]);
 
   chdir(`build/${branch}`);
   debug && console.log(`git操作前的工作目录${cwd()}`);
@@ -106,8 +106,8 @@ const publish = async ({
     customCommitText || `srcBranch:${currentSrcBranch}`
   } ]`} [ latest-src-commit:${commits} ]`;
 
-  execaSync("git", ["add", "-A"]);
-  execaSync("git", ["commit", "-m", COMMITS]);
+  execa("git", ["add", "-A"]);
+  execa("git", ["commit", "-m", COMMITS]);
 
   if (debug) {
     spinner.succeed(
@@ -119,7 +119,7 @@ const publish = async ({
     );
     return;
   }
-  const { stdout: publishStatus } = execaSync("git", [
+  const { stdout: publishStatus } = await execa("git", [
     "push",
     "-f",
     "origin",
