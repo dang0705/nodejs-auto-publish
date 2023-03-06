@@ -1,5 +1,7 @@
 import { execaSync, execa } from "execa";
+import rimraf from "rimraf";
 import { chdir, cwd } from "node:process";
+import fs from "node:fs";
 import readline from "node:readline";
 import { stat } from "node:fs/promises";
 import path from "node:path";
@@ -36,7 +38,7 @@ const publish = async ({
       execaSync("git", ["worktree", "remove", "-f", "-f", branch]);
       execaSync("git", ["worktree", "prune"]);
       if (removeBuildDir) {
-        execaSync("rm", ["-rf", "build"]);
+        rimraf("build");
         debug && console.log("build临时目录已删除\n");
       }
     } catch (e) {}
@@ -81,9 +83,10 @@ const publish = async ({
       `origin/${branch}`,
     ]);
     console.log(stdout);
-    chdir(`build/${branch}`);
-    execa("rm", ["-rf", "*"]);
-    chdir(__dirName);
+    const packagedFiles = fs.readdirSync(`build/${branch}`);
+    packagedFiles.forEach(
+      (name) => name !== ".git" && rimraf(`build/${branch}/${name}`)
+    );
   }
   spinner.text = `正在运行打包脚本... npm run ${npmScript}`;
   const { stdout: bundleStatus, stderr: scriptErr } = await execa("npm", [
@@ -92,7 +95,7 @@ const publish = async ({
   ]);
   console.log(scriptErr + "\n", bundleStatus);
 
-  execa("cp", ["-rf", `${dist}/*`, `build/${branch}`]);
+  execa("cp", [`${dist}/*`, `build/${branch}`]);
 
   chdir(`build/${branch}`);
   debug && console.log(`git操作前的工作目录${cwd()}`);
