@@ -1,5 +1,6 @@
 import { execaSync, execa } from "execa";
 import rimraf from "rimraf";
+import copy from "copy";
 import { chdir, cwd } from "node:process";
 import fs from "node:fs";
 import readline from "node:readline";
@@ -37,11 +38,12 @@ const publish = async ({
       chdir(__dirName);
       execaSync("git", ["worktree", "remove", "-f", "-f", branch]);
       execaSync("git", ["worktree", "prune"]);
-      if (removeBuildDir) {
-        rimraf("build");
-        debug && console.log("build临时目录已删除\n");
-      }
-    } catch (e) {}
+      removeBuildDir && debug && console.log("build临时目录已删除\n");
+    } catch (e) {
+    } finally {
+      console.log(cwd());
+      rimraf("build");
+    }
   };
   const getCurrentSrcHash = (currentSourceBranch) =>
     execa("git", [
@@ -94,44 +96,44 @@ const publish = async ({
     npmScript,
   ]);
   console.log(scriptErr + "\n", bundleStatus);
+  const afterPackage = async () => {
+    chdir(`build/${branch}`);
+    debug && console.log(`git操作前的工作目录${cwd()}`);
+    spinner.text = "打包完成，准备git发布";
+    const { stdout: commits } = await getCurrentSrcHash(currentSrcBranch);
 
-  execa("cp", [`${dist}/*`, `build/${branch}`]);
+    if (customCommit) {
+      var customCommitText = customCommit({ branch, currentSrcBranch });
+    }
+    const COMMITS = `built by ${`[ ${
+      customCommitText || `srcBranch:${currentSrcBranch}`
+    } ]`} [ latest-src-commit:${commits} ]`;
 
-  chdir(`build/${branch}`);
-  debug && console.log(`git操作前的工作目录${cwd()}`);
-  spinner.text = "打包完成，准备git发布";
-  const { stdout: commits } = await getCurrentSrcHash(currentSrcBranch);
+    execaSync("git", ["add", "-A"]);
+    execaSync("git", ["commit", "-m", COMMITS]);
 
-  if (customCommit) {
-    var customCommitText = customCommit({ branch, currentSrcBranch });
-  }
-  const COMMITS = `built by ${`[ ${
-    customCommitText || `srcBranch:${currentSrcBranch}`
-  } ]`} [ latest-src-commit:${commits} ]`;
-
-  execaSync("git", ["add", "-A"]);
-  execaSync("git", ["commit", "-m", COMMITS]);
-
-  if (debug) {
+    if (debug) {
+      spinner.succeed(
+        `调试完成，${
+          customCommit
+            ? `因开启了customCommit，本次自定义提交信息为${COMMITS}`
+            : ""
+        }调试模式下不会推送代码，请查看本地${branch}分支的记录进行验证。`
+      );
+      return;
+    }
+    const { stdout: publishStatus } = execaSync("git", [
+      "push",
+      "-f",
+      "origin",
+      branch,
+    ]);
+    console.log(publishStatus);
     spinner.succeed(
-      `调试完成，${
-        customCommit
-          ? `因开启了customCommit，本次自定义提交信息为${COMMITS}`
-          : ""
-      }调试模式下不会推送代码，请查看本地${branch}分支的记录进行验证。`
+      `代码推送成功，本次推送的git提交信息为：${COMMITS}，打包分支为${branch}`
     );
-    return;
-  }
-  const { stdout: publishStatus } = execaSync("git", [
-    "push",
-    "-f",
-    "origin",
-    branch,
-  ]);
-  console.log(publishStatus);
-  spinner.succeed(
-    `代码推送成功，本次推送的git提交信息为：${COMMITS}，打包分支为${branch}`
-  );
+  };
+  copy(`${dist}/*`, `build/${branch}`, {}, afterPackage);
 };
 
 export default function ({
