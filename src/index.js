@@ -7,6 +7,7 @@ import readline from "node:readline";
 import { stat } from "node:fs/promises";
 import path from "node:path";
 import ora from "ora";
+import c from "node:readline";
 
 const __dirName = path.resolve();
 let spinner = ora("");
@@ -32,7 +33,7 @@ const publish = async ({
   dist,
   shortCommitHash,
 }) => {
-  const cleanWorkTree = ({ removeBuildDir = false } = {}) => {
+  const cleanWorkTree = async ({ removeBuildDir = false } = {}) => {
     const clean = () => {
       try {
         chdir(__dirName);
@@ -47,7 +48,10 @@ const publish = async ({
     if (debug) {
       !removeBuildDir && clean();
     } else {
-      removeBuildDir && clean();
+      try {
+        await stat(path.join(__dirName, `build/${branch}`));
+        clean();
+      } catch (e) {}
     }
   };
   const getCurrentSrcHash = (currentSourceBranch) =>
@@ -105,7 +109,7 @@ const publish = async ({
     chdir(`build/${branch}`);
 
     if (debug) {
-      console.log(`git操作前的工作目录${cwd()}`);
+      console.log(`\ngit操作前的工作目录${cwd()}`);
       fs.readdir(`build/${branch}`, (err, files) => {
         console.log(files);
       });
@@ -144,7 +148,12 @@ const publish = async ({
       `代码推送成功，本次推送的git提交信息为：${COMMITS}，打包分支为${branch}`
     );
   };
-  copy(`${dist}/`, `build/${branch}`, { flatten: false }, afterPackage);
+  copy(
+    [`${dist}/`, `${dist}/**/*`],
+    `build/${branch}`,
+    { flatten: false },
+    afterPackage
+  );
 };
 
 export default function ({
