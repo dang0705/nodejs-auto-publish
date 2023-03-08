@@ -84,7 +84,7 @@ const publish = async ({
     execaSync("mkdir", ["build"]);
     debug && (spinner.text = `已在${cwd()}下建立临时目录build\n`);
   } finally {
-    cleanWorkTree();
+    await cleanWorkTree();
     const { stdout } = await execa("git", [
       "worktree",
       "add",
@@ -137,13 +137,7 @@ const publish = async ({
       );
       return;
     }
-    const { stdout: publishStatus } = execaSync("git", [
-      "push",
-      "-f",
-      "origin",
-      branch,
-    ]);
-    console.log(publishStatus);
+    execa("git", ["push", "-f", "origin", branch]);
     spinner.succeed(
       `代码推送成功，本次推送的git提交信息为：${COMMITS}，打包分支为${branch}`
     );
