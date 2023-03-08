@@ -1,6 +1,6 @@
 {
   "name": "nodejs-auto-publish",
-  "version": "1.0.33",
+  "version": "1.0.34",
   "description": "nodejs auto publish code",
   "type": "module",
   "main": "dist/index.mjs",
