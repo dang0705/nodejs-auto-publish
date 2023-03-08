@@ -6,7 +6,7 @@ import readline from "node:readline";
 import { stat } from "node:fs/promises";
 import path from "node:path";
 import ora from "ora";
-import e from "copy";
+import rimraf from "rimraf";
 
 const __dirName = path.resolve();
 let spinner = ora("");
@@ -104,9 +104,7 @@ const publish = async ({
     console.log(stdout);
     const packagedFiles = fs.readdirSync(`build/${branch}`);
     packagedFiles.forEach(
-      (name) =>
-        name !== ".git" &&
-        fs.rm(`build/${branch}/${name}`, (e) => e && console.log(e))
+      (name) => name !== ".git" && rimraf(`build/${branch}/${name}`)
     );
   }
   spinner.text = `正在运行打包脚本... npm run ${npmScript}`;
