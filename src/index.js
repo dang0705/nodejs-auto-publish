@@ -26,7 +26,6 @@ const handleInvalidBundleBranch = (bundleBranch) => {
 };
 const publish = async ({
   branch,
-  master,
   npmScript,
   customCommit,
   debug,
@@ -34,15 +33,19 @@ const publish = async ({
   shortCommitHash,
 }) => {
   const cleanWorkTree = ({ removeBuildDir = false } = {}) => {
-    try {
-      chdir(__dirName);
-      execaSync("git", ["worktree", "remove", "-f", "-f", branch]);
-      execaSync("git", ["worktree", "prune"]);
-      removeBuildDir && debug && console.log("build临时目录已删除\n");
-    } catch (e) {
-    } finally {
-      console.log(cwd());
-      rimraf("build");
+    if (removeBuildDir) {
+      try {
+        if (!debug) {
+          chdir(__dirName);
+          execaSync("git", ["worktree", "remove", "-f", "-f", branch]);
+          execaSync("git", ["worktree", "prune"]);
+          return;
+        }
+        console.log("build临时目录已删除\n");
+      } catch (e) {
+      } finally {
+        rimraf("build");
+      }
     }
   };
   const getCurrentSrcHash = (currentSourceBranch) =>
@@ -133,7 +136,7 @@ const publish = async ({
       `代码推送成功，本次推送的git提交信息为：${COMMITS}，打包分支为${branch}`
     );
   };
-  copy(`${dist}/*`, `build/${branch}`, {}, afterPackage);
+  copy(`${dist}/**/*`, `build/${branch}`, { flatten: false }, afterPackage);
 };
 
 export default function ({
