@@ -10,7 +10,6 @@ import rimraf from "rimraf";
 
 const __dirName = path.resolve();
 let spinner = ora("");
-
 const { stdout: currentSrcBranch } = await execa("git", [
   "symbolic-ref",
   "--short",
@@ -32,36 +31,48 @@ const publish = async ({
   dist,
   shortCommitHash,
 }) => {
-  const cleanWorkTree = (cb) => {
-    chdir(__dirName);
-    const clean = () => {
-      try {
-        execaSync("git", ["worktree", "remove", "-f", "-f", branch]);
-        execaSync("git", ["worktree", "prune"]);
-        fs.rmdir("./build", (err) => {
-          err && console.log(err);
-          cb && cb();
-        });
-      } catch (e) {}
-    };
+  const WORKTREE = {
+    async add() {
+      const { stdout } = await execa("git", [
+        "worktree",
+        "add",
+        "-B",
+        branch,
+        `build/${branch}`,
+        `origin/${branch}`,
+      ]);
+      return stdout;
+    },
+    exists() {
+      const { stdout } = execaSync("git", ["worktree", "list"]);
+      const worktrees = stdout.split("\n");
+      return worktrees.some(
+        (worktree) =>
+          worktree.substring(
+            worktree.indexOf("[") + 1,
+            worktree.indexOf("]")
+          ) === branch
+      );
+    },
+    clear(cb = null) {
+      chdir(__dirName);
+      const clearWorktree = () => {
+        try {
+          execaSync("git", ["worktree", "remove", "-f", "-f", branch]);
+          execaSync("git", ["worktree", "prune"]);
+          fs.rmdir("./build", (err) => {
+            err && console.log(err);
+            cb && cb();
+          });
+        } catch (e) {}
+      };
 
-    if (debug) {
-      if (!cb) clean();
-    } else {
-      try {
-        const { stdout } = execaSync("git", ["worktree", "list"]);
-        const worktrees = stdout.split("\n");
-        worktrees.forEach(
-          (worktree) =>
-            worktree.substring(
-              worktree.indexOf("[") + 1,
-              worktree.indexOf("]")
-            ) === branch && clean()
-        );
-      } catch (e) {
-        console.log(e);
+      if (debug) {
+        if (!cb) clearWorktree();
+      } else {
+        this.exists() && clearWorktree();
       }
-    }
+    },
   };
   const getCurrentSrcHash = (currentSourceBranch) =>
     execa("git", [
@@ -79,7 +90,7 @@ const publish = async ({
       console.log(err);
       process.exit();
     })
-    .on("exit", () => cleanWorkTree(() => execa("exit", [1])));
+    .on("exit", () => WORKTREE.clear(() => process.kill()));
 
   spinner.text = `开始${debug ? "调试" : "打包部署"}...`;
   spinner.start();
@@ -92,18 +103,12 @@ const publish = async ({
       () => debug && (spinner.text = `已在${cwd()}下建立临时目录build\n`)
     );
   } finally {
-    await cleanWorkTree();
-    const { stdout } = await execa("git", [
-      "worktree",
-      "add",
-      "-B",
-      branch,
-      `build/${branch}`,
-      `origin/${branch}`,
-    ]);
-    console.log(stdout);
-    const packagedFiles = fs.readdirSync(`build/${branch}`);
-    packagedFiles.forEach(
+    await WORKTREE.clear();
+    console.log(await WORKTREE.add());
+    const lastPackagedFiles = fs.readdirSync(`build/${branch}`);
+
+    // 清空上一次的静态资源文件 （ 只保留.git文件做版本对比 ）
+    lastPackagedFiles.forEach(
       (name) => name !== ".git" && rimraf(`build/${branch}/${name}`)
     );
   }
@@ -113,48 +118,46 @@ const publish = async ({
     npmScript,
   ]);
   console.log(scriptErr + "\n", bundleStatus);
-  const afterPackage = async () => {
-    chdir(`build/${branch}`);
 
-    if (debug) {
-      console.log(`\ngit操作前的工作目录${cwd()}`);
-      fs.readdir(`build/${branch}`, (err, files) => {
-        console.log(files);
-      });
-    }
-    spinner.text = "打包完成，准备git发布";
-    const { stdout: commits } = await getCurrentSrcHash(currentSrcBranch);
-
-    if (customCommit) {
-      var customCommitText = customCommit({ branch, currentSrcBranch });
-    }
-    const COMMITS = `built by ${`[ ${
-      customCommitText || `srcBranch:${currentSrcBranch}`
-    } ]`} [ latest-src-commit:${commits} ]`;
-
-    execaSync("git", ["add", "-A"]);
-    execaSync("git", ["commit", "-m", COMMITS]);
-
-    if (debug) {
-      spinner.succeed(
-        `调试完成，${
-          customCommit
-            ? `因开启了customCommit，本次自定义提交信息为${COMMITS}`
-            : ""
-        }调试模式下不会推送代码，请查看本地${branch}分支的记录进行验证。`
-      );
-      return;
-    }
-    execa("git", ["push", "-f", "origin", branch]);
-    spinner.succeed(
-      `代码推送成功，本次推送的git提交信息为：${COMMITS}，打包分支为${branch}`
-    );
-  };
   copy(
     [`${dist}/`, `${dist}/**/*`],
     `build/${branch}`,
     { flatten: false },
-    afterPackage
+    async () => {
+      chdir(`build/${branch}`);
+      spinner.text = "打包完成，准备git发布";
+      if (debug) {
+        console.log(
+          `\n已将下列文件从打包目录 ${dist} 移至发布目录 build/${branch}：\n`
+        );
+        fs.readdir(`build/${branch}`, (_, files) => console.log(files));
+      }
+      const { stdout: commits } = await getCurrentSrcHash(currentSrcBranch);
+
+      const COMMITS = `built by ${`[ ${
+        customCommit
+          ? customCommit({ branch, currentSrcBranch })
+          : `srcBranch:${currentSrcBranch}`
+      } ]`} [ latest-src-commit: ${commits} ]`;
+
+      execaSync("git", ["add", "-A"]);
+      execaSync("git", ["commit", "-m", COMMITS]);
+
+      if (debug) {
+        spinner.succeed(
+          `调试完成，${
+            customCommit
+              ? `因开启了customCommit，本次自定义提交信息为${COMMITS}`
+              : ""
+          }调试模式下不会推送代码，请查看本地${branch}分支的记录进行验证。`
+        );
+        return;
+      }
+      execa("git", ["push", "-f", "origin", branch]);
+      spinner.succeed(
+        `代码推送成功，本次推送的git提交信息为：${COMMITS}，打包分支为${branch}`
+      );
+    }
   );
 };
 
@@ -170,7 +173,7 @@ export default function ({
   console.log(
     "\x1b[43m%s\x1b[0m",
     `当前运行模式为：${
-      debug ? "【 调试（打包后不推送) 】" : "【 完全（打包后推送） 】"
+      debug ? "【 调试（打包后不推送) 】" : "【 正常（打包后推送） 】"
     },如需改成${
       debug ? "完整" : "调试（打包后不推送）"
     }模式，请将debug参数设置为${debug ? "false" : "true"}\n`
