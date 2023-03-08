@@ -33,19 +33,21 @@ const publish = async ({
   shortCommitHash,
 }) => {
   const cleanWorkTree = ({ removeBuildDir = false } = {}) => {
-    if (removeBuildDir) {
+    const clean = () => {
       try {
-        if (!debug) {
-          chdir(__dirName);
-          execaSync("git", ["worktree", "remove", "-f", "-f", branch]);
-          execaSync("git", ["worktree", "prune"]);
-          return;
-        }
+        chdir(__dirName);
+        execaSync("git", ["worktree", "remove", "-f", "-f", branch]);
+        execaSync("git", ["worktree", "prune"]);
         console.log("build临时目录已删除\n");
       } catch (e) {
       } finally {
         rimraf("build");
       }
+    };
+    if (debug) {
+      !removeBuildDir && clean();
+    } else {
+      removeBuildDir && clean();
     }
   };
   const getCurrentSrcHash = (currentSourceBranch) =>
@@ -101,7 +103,13 @@ const publish = async ({
   console.log(scriptErr + "\n", bundleStatus);
   const afterPackage = async () => {
     chdir(`build/${branch}`);
-    debug && console.log(`git操作前的工作目录${cwd()}`);
+
+    if (debug) {
+      console.log(`git操作前的工作目录${cwd()}`);
+      fs.readdir(`build/${branch}`, (err, files) => {
+        console.log(files);
+      });
+    }
     spinner.text = "打包完成，准备git发布";
     const { stdout: commits } = await getCurrentSrcHash(currentSrcBranch);
 
@@ -136,7 +144,7 @@ const publish = async ({
       `代码推送成功，本次推送的git提交信息为：${COMMITS}，打包分支为${branch}`
     );
   };
-  copy(`${dist}/**/*`, `build/${branch}`, { flatten: false }, afterPackage);
+  copy(`${dist}/`, `build/${branch}`, { flatten: false }, afterPackage);
 };
 
 export default function ({
