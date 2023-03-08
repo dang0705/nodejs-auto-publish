@@ -1,5 +1,4 @@
 import { execaSync, execa } from "execa";
-import rimraf from "rimraf";
 import copy from "copy";
 import { chdir, cwd } from "node:process";
 import fs from "node:fs";
@@ -7,7 +6,7 @@ import readline from "node:readline";
 import { stat } from "node:fs/promises";
 import path from "node:path";
 import ora from "ora";
-import c from "node:readline";
+import e from "copy";
 
 const __dirName = path.resolve();
 let spinner = ora("");
@@ -33,25 +32,35 @@ const publish = async ({
   dist,
   shortCommitHash,
 }) => {
-  const cleanWorkTree = async ({ removeBuildDir = false } = {}) => {
+  const cleanWorkTree = (cb) => {
+    chdir(__dirName);
     const clean = () => {
       try {
-        chdir(__dirName);
         execaSync("git", ["worktree", "remove", "-f", "-f", branch]);
         execaSync("git", ["worktree", "prune"]);
-        console.log("build临时目录已删除\n");
-      } catch (e) {
-      } finally {
-        rimraf("build");
-      }
+        fs.rmdir("./build", (err) => {
+          err && console.log(err);
+          cb && cb();
+        });
+      } catch (e) {}
     };
+
     if (debug) {
-      !removeBuildDir && clean();
+      if (!cb) clean();
     } else {
       try {
-        await stat(path.join(__dirName, `build/${branch}`));
-        clean();
-      } catch (e) {}
+        const { stdout } = execaSync("git", ["worktree", "list"]);
+        const worktrees = stdout.split("\n");
+        worktrees.forEach(
+          (worktree) =>
+            worktree.substring(
+              worktree.indexOf("[") + 1,
+              worktree.indexOf("]")
+            ) === branch && clean()
+        );
+      } catch (e) {
+        console.log(e);
+      }
     }
   };
   const getCurrentSrcHash = (currentSourceBranch) =>
@@ -70,10 +79,7 @@ const publish = async ({
       console.log(err);
       process.exit();
     })
-    .on("exit", () => {
-      cleanWorkTree({ removeBuildDir: true });
-      execaSync("exit", [1]);
-    });
+    .on("exit", () => cleanWorkTree(() => execa("exit", [1])));
 
   spinner.text = `开始${debug ? "调试" : "打包部署"}...`;
   spinner.start();
@@ -81,8 +87,10 @@ const publish = async ({
   try {
     await stat(path.join(__dirName, "build"));
   } catch (e) {
-    execaSync("mkdir", ["build"]);
-    debug && (spinner.text = `已在${cwd()}下建立临时目录build\n`);
+    fs.mkdir(
+      "build",
+      () => debug && (spinner.text = `已在${cwd()}下建立临时目录build\n`)
+    );
   } finally {
     await cleanWorkTree();
     const { stdout } = await execa("git", [
@@ -96,7 +104,9 @@ const publish = async ({
     console.log(stdout);
     const packagedFiles = fs.readdirSync(`build/${branch}`);
     packagedFiles.forEach(
-      (name) => name !== ".git" && rimraf(`build/${branch}/${name}`)
+      (name) =>
+        name !== ".git" &&
+        fs.rm(`build/${branch}/${name}`, (e) => e && console.log(e))
     );
   }
   spinner.text = `正在运行打包脚本... npm run ${npmScript}`;
