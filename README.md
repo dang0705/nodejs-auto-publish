@@ -1,19 +1,28 @@
 ## 基于nodejs的前端gitflow自动化代码部署。
 ## NodeJS-based front-end GitFlow automates code deployment
 
-### 说明：
-#### 运用git worktree 实现前端自动部署，源码工作区和生产分支互不干扰。
+### 说明 (illustrate)：
+#### 运用git worktree 实现前端自动部署，源码工作区和生产分支互不干扰。一键运行，自动部署。
 Use Git Worktree to implement automatic front-end deployment, and the source code workspace and production branch do not interfere with each other.
-### 准备工作:
-#### 需至少准备一个源码分支以外的生产分支
-You need to prepare at least one production branch other than the source code branch
-### branches eg:
-* master  -- 源码主分支
-* test    -- 测试分支
-* release -- 生产代码分支
-* ...其他分支
+
+### 准备工作 (preparations):
+
 <!-- TOC -->
-### 使用：
+  * 前端 --- front-end
+    * 需至少准备一个源码分支以外的生产分支(You need to prepare at least one production branch other than the source code branch)
+    * branches eg:
+      * master  -- 源码主分支
+      * test    -- 测试分支
+      * release -- 生产代码分支
+      * ...其他分支
+
+
+  * 服务端 --- server
+    * 服务端对接代码仓库的各生产分支，部署于对应服务上。(The server connects to each production branch of the code repository and deploys it on the corresponding service.)
+<!-- TOC -->
+
+
+### 使用 (usage)：
 ```
 // ./scripts/publish.mjs
 import autoPublish from 'nodejs-auto-publish';
