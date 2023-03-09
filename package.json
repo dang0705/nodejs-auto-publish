@@ -1,7 +1,7 @@
 {
   "name": "nodejs-auto-publish",
   "version": "1.0.39",
-  "description": "nodejs auto publish code",
+  "description": "NodeJS-based front-end GitFlow automates code deployment",
   "type": "module",
   "main": "dist/index.mjs",
   "repository": {

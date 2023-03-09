@@ -1,9 +1,17 @@
-## 基于nodejs的前端代码自动打包，git三连操作。
-### 工作原理：
-#### 运用git worktree 新建/关联 指定的打包分支，由于是worktree 的git 流操作, 不会影响当前主分支的工作区。(Use git worktree to create a new package branch specified by the association. Since it is the git flow operation of worktree, it will not affect the work area of the current main branch)
-### git分支至少需满足以下结构，分支名可自定义 (The git branch must at least meet the following structure, and the branch name can be customized)<!-- TOC -->
-* master  -- 主分支
-* release -- 打包分支（不包含源码文件，只有打包后的文件）
+## 基于nodejs的前端gitflow自动化代码部署。
+## NodeJS-based front-end GitFlow automates code deployment
+
+### 说明：
+#### 运用git worktree 实现前端自动部署，源码工作区和生产分支互不干扰。
+Use Git Worktree to implement automatic front-end deployment, and the source code workspace and production branch do not interfere with each other.
+### 准备工作:
+#### 需至少准备一个源码分支以外的生产分支
+You need to prepare at least one production branch other than the source code branch
+### branches eg:
+* master  -- 源码主分支
+* test    -- 测试分支
+* release -- 生产代码分支
+* ...其他分支
 <!-- TOC -->
 ### 使用：
 ```
@@ -15,7 +23,7 @@ autoPublish({
   branch: 'release',
   dist:'myDistPath',
   npmScript: 'app:prod',
-  master:'master'  // The source code branch that must be switched for the current package
+  master:'master'  // Package qualifies the source branch that must be switched to
 });
 
 // 有多个打包分支 monorepo or multiple packaging branch
