@@ -1,7 +1,7 @@
 {
   "name": "nodejs-auto-publish",
-  "version": "1.0.25",
-  "description": "nodejs auto publish code",
+  "version": "1.0.42",
+  "description": "NodeJS-based front-end GitFlow automates code deployment",
   "type": "module",
   "main": "dist/index.mjs",
   "repository": {
@@ -29,12 +29,14 @@
   "author": "JAY",
   "license": "ISC",
   "dependencies": {
-    "execa": "^6.1.0",
-    "ora": "^6.1.2"
+    "execa": "^7",
+    "copy": "^0.3.2",
+    "ora": "^6.1.2",
+    "rimraf": "^4.3.0"
   },
   "devDependencies": {
+    "@rollup/plugin-commonjs": "^24.0.0",
     "rollup": "^3.9.1",
-    "rollup-plugin-terser": "^7.0.2",
-    "@rollup/plugin-commonjs": "^24.0.0"
+    "rollup-plugin-terser": "^7.0.2"
   }
 }

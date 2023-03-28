@@ -6,6 +6,7 @@ autoPublish({
     1: {
       name: "release",
       npmScript,
+      master: "master",
     },
     2: {
       name: "release-test",

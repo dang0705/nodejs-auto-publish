@@ -6,7 +6,7 @@ export default {
   output: {
     file: "dist/index.mjs",
     exports: "default",
-    formats: ["es"],
+    format: "es",
     plugins: [terser(), commonjs()],
   },
 };
