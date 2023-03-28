@@ -31,49 +31,8 @@ const publish = async ({
   dist,
   shortCommitHash,
 }) => {
-  const WORKTREE = {
-    async add() {
-      const { stdout } = await execa("git", [
-        "worktree",
-        "add",
-        "-B",
-        branch,
-        `build/${branch}`,
-        `origin/${branch}`,
-      ]);
-      return stdout;
-    },
-    exists() {
-      const { stdout } = execaSync("git", ["worktree", "list"]);
-      const worktrees = stdout.split("\n");
-      return worktrees.some(
-        (worktree) =>
-          worktree.substring(
-            worktree.indexOf("[") + 1,
-            worktree.indexOf("]")
-          ) === branch
-      );
-    },
-    clear(cb = null) {
-      chdir(__dirName);
-      const clearWorktree = () => {
-        try {
-          execaSync("git", ["worktree", "remove", "-f", "-f", branch]);
-          execaSync("git", ["worktree", "prune"]);
-          fs.rmdir("./build", (err) => {
-            err && console.log(err);
-            cb && cb();
-          });
-        } catch (e) {}
-      };
-
-      if (debug) {
-        if (!cb) clearWorktree();
-      } else {
-        this.exists() && clearWorktree();
-      }
-    },
-  };
+  const { default: WORKTREE } = await import("./worktree.js");
+  const worktree = WORKTREE(branch, debug);
   const getCurrentSrcHash = (currentSourceBranch) =>
     execa("git", [
       "rev-parse",
@@ -90,7 +49,7 @@ const publish = async ({
       console.log(err);
       process.exit();
     })
-    .on("exit", () => WORKTREE.clear(() => process.kill()));
+    .on("exit", () => worktree.clear(() => process.kill()));
 
   spinner.text = `开始${debug ? "调试" : "打包部署"}...`;
   spinner.start();
@@ -103,8 +62,8 @@ const publish = async ({
       () => debug && (spinner.text = `已在${cwd()}下建立临时目录build\n`)
     );
   } finally {
-    await WORKTREE.clear();
-    console.log(await WORKTREE.add());
+    await worktree.clear();
+    console.log(await worktree.add());
     const lastPackagedFiles = fs.readdirSync(`build/${branch}`);
 
     // 清空上一次的静态资源文件 （ 只保留.git文件做版本对比 ）
@@ -193,10 +152,7 @@ export default function ({
     });
     return;
   }
-  const branches = [];
-  for (const index in branch) {
-    branches.push(`${index}.${branch[index].name}`);
-  }
+  const branches = branch.map(({ name }, index) => `${index + 1}.${name}`);
 
   let r1 = readline.createInterface({
     input: process.stdin,
@@ -207,16 +163,17 @@ export default function ({
   );
 
   r1.question("请选择一个构建分支（序号）：\n", async (answer) => {
-    if (branch[answer].master && branch[answer].master !== currentSrcBranch) {
-      handleInvalidBundleBranch(branch[answer].master);
+    const index = answer - 1;
+    if (branch[index].master && branch[index].master !== currentSrcBranch) {
+      handleInvalidBundleBranch(branch[index].master);
       r1.close();
       return;
     }
-    console.log("您选择了：", branch[answer].name + "分支\n");
+    console.log("您选择了：", branch[index].name + "分支\n");
     await publish({
-      branch: branch[answer].name,
-      dist: branch[answer].dist || "dist",
-      npmScript: branch[answer].npmScript,
+      branch: branch[index].name,
+      dist: branch[index].dist || "dist",
+      npmScript: branch[index].npmScript,
       customCommit,
       debug,
       shortCommitHash,
